@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Post an Image test</title>
+</head>
+<body>
+<div id="my_photo_booth">
+    <div id="my_camera"></div>
+
+        <script src="{{url_for('static',filename='js/webcam.min.js')}}"></script>
+        <script src="{{url_for('static',filename='audio/shutter.mp3')}}"></script>
+        <script src="{{url_for('static',filename='audio/shutter.ogg')}}"></script>
+
+        <!-- Configure a few settings and attach camera -->
+        <script language="JavaScript">
+            Webcam.set({
+                // live preview size
+                width: 320,
+                height: 240,
+
+                // device capture size
+                dest_width: 640,
+                dest_height: 480,
+
+                // final cropped size
+                crop_width: 480,
+                crop_height: 480,
+
+                // format and quality
+                image_format: 'jpeg',
+                jpeg_quality: 90,
+
+                // flip horizontal (mirror mode)
+                flip_horiz: true
+            });
+            Webcam.attach( '#my_camera' );
+        </script>
+
+        <br>
+        <div id="results" style="display:none">
+            <!-- Your captured image will appear here... -->
+        </div>
+
+        <!-- A button for taking snaps -->
+        <form>
+            <div id="pre_take_buttons">
+                <!-- This button is shown before the user takes a snapshot -->
+                <input type=button class="btn btn-success btn-squared" value="CAPTURE" onClick="preview_snapshot()">
+            </div>
+
+            <div id="post_take_buttons" style="display:none">
+                <!-- These buttons are shown after a snapshot is taken -->
+                <input type=button class="btn btn-danger btn-squared responsive-width" value="&lt; AGAIN" onClick="cancel_preview()">
+                <input type=button class="btn btn-success btn-squared responsive-width" value="SAVE &gt;" onClick="save_photo()" style="font-weight:bold;">
+            </div>
+        </form>
+
+</div>
+
+<script language="JavaScript">
+    // preload shutter audio clip
+    var shutter = new Audio();
+    shutter.autoplay = false;
+    shutter.src = navigator.userAgent.match(/Firefox/) ? '/static/audio/shutter.ogg' : '/static/audio/shutter.mp3';
+
+    function preview_snapshot() {
+        // play sound effect
+        try { shutter.currentTime = 0; } catch(e) {;} // fails in IE
+        shutter.play();
+
+        // freeze camera so user can preview current frame
+        Webcam.freeze();
+
+        // swap button sets
+        document.getElementById('pre_take_buttons').style.display = 'none';
+        document.getElementById('post_take_buttons').style.display = '';
+    }
+
+    function cancel_preview() {
+        // cancel preview freeze and return to live camera view
+        Webcam.unfreeze();
+
+        // swap buttons back to first set
+        document.getElementById('pre_take_buttons').style.display = '';
+        document.getElementById('post_take_buttons').style.display = 'none';
+    }
+
+    function save_photo() {
+        // actually snap photo (from preview freeze).
+        Webcam.snap( function(data_uri) {
+            // display results in page
+            console.log(data_uri);
+
+            // shut down camera, stop capturing
+            Webcam.reset();
+
+            $.getJSON($SCRIPT_ROOT + '/_photo_cap', {
+                photo_cap: data_uri,
+            },function(data){
+                var response = data.response;
+            });
+
+        } );
+    }
+</script>
+</body>
+</html>
